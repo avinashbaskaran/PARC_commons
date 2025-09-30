@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Case Uploader</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    input, button { margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <h1>Upload to Case Management Server</h1>
+
+  <form id="uploadForm">
+    <label for="caseId">Case ID (leave blank for new):</label><br>
+    <input type="text" id="caseId" name="caseId"><br>
+
+    <label for="fileInput">Choose file:</label><br>
+    <input type="file" id="fileInput" name="file"><br>
+
+    <button type="submit">Upload</button>
+  </form>
+
+  <p id="status"></p>
+
+  <script>
+    const SERVER = "http://<YOUR-EC2-PUBLIC-IP>:8000"; // replace with EC2 or domain
+
+    document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const fileInput = document.getElementById("fileInput");
+      const caseId = document.getElementById("caseId").value;
+
+      if (fileInput.files.length === 0) {
+        alert("Please choose a file.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+      if (caseId) {
+        formData.append("case_id", caseId);
+      }
+
+      document.getElementById("status").innerText = "Uploading...";
+
+      try {
+        const response = await fetch(SERVER + "/upload", {
+          method: "POST",
+          body: formData
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          document.getElementById("status").innerText = "Uploaded! Case ID: " + result.case_id;
+        } else {
+          document.getElementById("status").innerText = "Error: " + (result.error || "Upload failed");
+        }
+      } catch (err) {
+        document.getElementById("status").innerText = "Error connecting to server: " + err;
+      }
+    });
+  </script>
+</body>
+</html>
