@@ -6,10 +6,13 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 30px; }
     input, button { margin: 10px 0; }
+    #connection { font-weight: bold; margin-bottom: 20px; }
   </style>
 </head>
 <body>
   <h1>Upload to Case Management Server</h1>
+
+  <p id="connection">Checking server connection...</p>
 
   <form id="uploadForm">
     <label for="caseId">Case ID (leave blank for new):</label><br>
@@ -24,10 +27,41 @@
   <p id="status"></p>
 
   <script>
-    const SERVER = "http://54.175.227.52:8000";
+    const SERVER = "http://54.175.227.52:8000";  // replace with domain + https later
+    let serverAvailable = false;
 
+    // Step 1: Check connection on page load
+    async function checkConnection() {
+      const connElem = document.getElementById("connection");
+      try {
+        const resp = await fetch(SERVER + "/cases");
+        if (resp.ok) {
+          serverAvailable = true;
+          connElem.textContent = "✅ Connected to server";
+          connElem.style.color = "green";
+        } else {
+          serverAvailable = false;
+          connElem.textContent = "❌ Server reachable but returned error";
+          connElem.style.color = "red";
+        }
+      } catch (err) {
+        serverAvailable = false;
+        connElem.textContent = "❌ Cannot connect to server";
+        connElem.style.color = "red";
+      }
+    }
+
+    // Run check at startup
+    checkConnection();
+
+    // Step 2: Upload handler
     document.getElementById("uploadForm").addEventListener("submit", async (e) => {
       e.preventDefault();
+
+      if (!serverAvailable) {
+        alert("Server is not available. Cannot upload.");
+        return;
+      }
 
       const fileInput = document.getElementById("fileInput");
       const caseId = document.getElementById("caseId").value;
@@ -53,12 +87,15 @@
 
         const result = await response.json();
         if (response.ok) {
-          document.getElementById("status").innerText = "Uploaded! Case ID: " + result.case_id;
+          document.getElementById("status").innerText =
+            "✅ Uploaded! Case ID: " + result.case_id;
         } else {
-          document.getElementById("status").innerText = "Error: " + (result.error || "Upload failed");
+          document.getElementById("status").innerText =
+            "❌ Error: " + (result.error || "Upload failed");
         }
       } catch (err) {
-        document.getElementById("status").innerText = "Error connecting to server: " + err;
+        document.getElementById("status").innerText =
+          "❌ Error connecting to server: " + err;
       }
     });
   </script>
